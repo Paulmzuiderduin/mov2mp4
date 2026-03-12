@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { fetchFile } from '@ffmpeg/util';
 
 const CORE_BASE = '/ffmpeg';
 
@@ -33,11 +33,10 @@ function makeId() {
 async function createFFmpeg(progressHandler) {
   const ffmpeg = new FFmpeg();
   ffmpeg.on('progress', progressHandler);
-  const [coreURL, wasmURL] = await Promise.all([
-    toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, 'text/javascript'),
-    toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, 'application/wasm')
-  ]);
-  await ffmpeg.load({ coreURL, wasmURL });
+  await ffmpeg.load({
+    coreURL: `${CORE_BASE}/ffmpeg-core.js`,
+    wasmURL: `${CORE_BASE}/ffmpeg-core.wasm`
+  });
   return ffmpeg;
 }
 

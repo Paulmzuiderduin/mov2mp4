@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 
-const sourceDir = resolve(root, 'node_modules', '@ffmpeg', 'core', 'dist', 'umd');
+const sourceDir = resolve(root, 'node_modules', '@ffmpeg', 'core', 'dist', 'esm');
 const targetDir = resolve(root, 'public', 'ffmpeg');
 
 const files = ['ffmpeg-core.js', 'ffmpeg-core.wasm'];
@@ -17,4 +17,3 @@ await Promise.all(
 );
 
 console.log(`Synced ffmpeg core assets to ${targetDir}`);
-
