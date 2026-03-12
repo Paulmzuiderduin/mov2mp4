@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">MOV2MP4</title>
+  <desc id="desc">Icon met pijl van MOV naar MP4</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1f6b4f" />
+      <stop offset="100%" stop-color="#153b2e" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#bg)" />
+  <path d="M30 44h36v10H46v20H30z" fill="#ffffff" />
+  <path d="M98 84H62V74h20V54h16z" fill="#f2a04b" />
+  <path d="M43 64h42" stroke="#cde8db" stroke-width="8" stroke-linecap="round" />
+  <path d="M77 50l16 14-16 14" fill="none" stroke="#cde8db" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+
