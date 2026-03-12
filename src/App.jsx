@@ -56,19 +56,161 @@ async function tryCommands(ffmpeg, commands, getLogTail) {
   let lastError = null;
   for (const command of commands) {
     try {
-      const code = await ffmpeg.exec(command);
+      const code = await ffmpeg.exec(command.args);
       if (code !== 0) {
         const tail = getLogTail();
         throw new Error(
-          tail ? `FFmpeg exited with code ${code}. ${tail}` : `FFmpeg exited with code ${code}.`
+          tail
+            ? `${command.label} failed (code ${code}). ${tail}`
+            : `${command.label} failed (code ${code}).`
         );
       }
-      return;
+      return command.label;
     } catch (error) {
       lastError = error;
     }
   }
   throw lastError || new Error('Conversion failed.');
+}
+
+function buildConversionPlans(inputName, outputName, speedMode) {
+  const directCopy = {
+    label: 'Direct stream copy (no re-encode)',
+    args: [
+      '-i',
+      inputName,
+      '-map',
+      '0:v:0',
+      '-map',
+      '0:a?',
+      '-sn',
+      '-dn',
+      '-c',
+      'copy',
+      '-movflags',
+      '+faststart',
+      outputName
+    ]
+  };
+
+  if (speedMode === 'fastest') {
+    return [
+      directCopy,
+      {
+        label: 'Fast re-encode (H.264/AAC ultrafast)',
+        args: [
+          '-i',
+          inputName,
+          '-map',
+          '0:v:0',
+          '-map',
+          '0:a?',
+          '-sn',
+          '-dn',
+          '-c:v',
+          'libx264',
+          '-preset',
+          'ultrafast',
+          '-crf',
+          '30',
+          '-c:a',
+          'aac',
+          '-b:a',
+          '96k',
+          '-movflags',
+          '+faststart',
+          outputName
+        ]
+      },
+      {
+        label: 'Fast fallback (MPEG4/AAC)',
+        args: [
+          '-i',
+          inputName,
+          '-sn',
+          '-dn',
+          '-c:v',
+          'mpeg4',
+          '-q:v',
+          '7',
+          '-c:a',
+          'aac',
+          '-b:a',
+          '96k',
+          '-movflags',
+          '+faststart',
+          outputName
+        ]
+      }
+    ];
+  }
+
+  return [
+    directCopy,
+    {
+      label: 'Balanced re-encode (H.264/AAC)',
+      args: [
+        '-i',
+        inputName,
+        '-map',
+        '0:v:0',
+        '-map',
+        '0:a?',
+        '-sn',
+        '-dn',
+        '-c:v',
+        'libx264',
+        '-preset',
+        'veryfast',
+        '-crf',
+        '22',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        '-movflags',
+        '+faststart',
+        outputName
+      ]
+    },
+    {
+      label: 'Balanced fallback (MPEG4/AAC)',
+      args: [
+        '-i',
+        inputName,
+        '-sn',
+        '-dn',
+        '-c:v',
+        'mpeg4',
+        '-q:v',
+        '5',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        '-movflags',
+        '+faststart',
+        outputName
+      ]
+    },
+    {
+      label: 'No-audio fallback',
+      args: [
+        '-i',
+        inputName,
+        '-an',
+        '-c:v',
+        'libx264',
+        '-preset',
+        'veryfast',
+        '-crf',
+        '23',
+        '-movflags',
+        '+faststart',
+        outputName
+      ]
+    }
+  ];
 }
 
 export default function App() {
@@ -81,6 +223,7 @@ export default function App() {
   const [queue, setQueue] = useState([]);
   const [isBusy, setIsBusy] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [speedMode, setSpeedMode] = useState('fastest');
   const [engineStatus, setEngineStatus] = useState('idle');
   const [engineMessage, setEngineMessage] = useState('');
   const [notice, setNotice] = useState('');
@@ -175,7 +318,8 @@ export default function App() {
           progress: 0,
           error: '',
           downloadUrl: '',
-          outputName: safeDownloadName(file.name)
+          outputName: safeDownloadName(file.name),
+          methodUsed: ''
         }));
       return prev.concat(additions);
     });
@@ -214,65 +358,10 @@ export default function App() {
       return `Last ffmpeg logs: ${lines.slice(-6).join(' | ')}`;
     };
 
-    const primary = [
-      '-i',
-      inputName,
-      '-c:v',
-      'libx264',
-      '-preset',
-      'veryfast',
-      '-crf',
-      '22',
-      '-c:a',
-      'aac',
-      '-b:a',
-      '128k',
-      '-movflags',
-      '+faststart',
-      outputName
-    ];
-
-    const fallbackMpeg4 = [
-      '-i',
-      inputName,
-      '-c:v',
-      'mpeg4',
-      '-q:v',
-      '5',
-      '-c:a',
-      'aac',
-      '-b:a',
-      '128k',
-      '-movflags',
-      '+faststart',
-      outputName
-    ];
-
-    const fallbackNoAudio = [
-      '-i',
-      inputName,
-      '-an',
-      '-c:v',
-      'libx264',
-      '-preset',
-      'veryfast',
-      '-crf',
-      '22',
-      '-movflags',
-      '+faststart',
-      outputName
-    ];
-
-    const fallbackDefault = [
-      '-i',
-      inputName,
-      '-movflags',
-      '+faststart',
-      outputName
-    ];
+    const plans = buildConversionPlans(inputName, outputName, speedMode);
 
     try {
-      await tryCommands(ffmpeg, [primary, fallbackMpeg4, fallbackNoAudio, fallbackDefault], logTail);
+      const methodUsed = await tryCommands(ffmpeg, plans, logTail);
       const data = await ffmpeg.readFile(outputName);
       if (!(data instanceof Uint8Array) || data.byteLength === 0) {
         const tail = logTail();
@@ -293,7 +382,8 @@ export default function App() {
                 status: 'done',
                 progress: 100,
                 error: '',
-                downloadUrl
+                downloadUrl,
+                methodUsed
               }
             : entry
         )
@@ -335,7 +425,8 @@ export default function App() {
                   ...entry,
                   status: 'converting',
                   progress: Math.max(entry.progress, 1),
-                  error: ''
+                  error: '',
+                  methodUsed: ''
                 }
               : entry
           )
@@ -410,6 +501,29 @@ export default function App() {
             <strong>Drop .MOV files here</strong>
             <p>or choose files manually</p>
           </div>
+          <div className="speed-mode">
+            <span className="speed-label">Mode</span>
+            <button
+              type="button"
+              className={`mode-pill ${speedMode === 'fastest' ? 'is-active' : ''}`}
+              onClick={() => setSpeedMode('fastest')}
+              disabled={isBusy}
+            >
+              Fastest
+            </button>
+            <button
+              type="button"
+              className={`mode-pill ${speedMode === 'balanced' ? 'is-active' : ''}`}
+              onClick={() => setSpeedMode('balanced')}
+              disabled={isBusy}
+            >
+              Balanced
+            </button>
+          </div>
+          <p className="speed-note">
+            Fastest first tries a direct stream copy (often much quicker), then falls back to fast
+            re-encoding only if needed.
+          </p>
           <div className="actions">
             <button type="button" onClick={triggerPicker} className="button button-secondary">
               Choose files
@@ -454,6 +568,7 @@ export default function App() {
           </span>
           <span>Queue: {queuedCount}</span>
           <span>Done: {doneCount}</span>
+          <span>Mode: {speedMode === 'fastest' ? 'Fastest' : 'Balanced'}</span>
         </section>
 
         {engineMessage ? <p className="hint">{engineMessage}</p> : null}
@@ -476,6 +591,7 @@ export default function App() {
                   <div className="progress">
                     <span style={{ width: `${item.progress}%` }} />
                   </div>
+                  {item.methodUsed ? <p className="hint item-hint">{item.methodUsed}</p> : null}
                   {item.error ? <p className="error">{item.error}</p> : null}
                 </div>
                 <div className="queue-actions">
@@ -500,8 +616,8 @@ export default function App() {
 
         <footer className="footer-note">
           <p>
-            This app tries H.264/AAC first for maximum compatibility, then falls back to a
-            secondary codec profile if needed.
+            Fastest mode can be dramatically quicker for compatible MOV files because it attempts
+            direct stream copy before re-encoding.
           </p>
           <p>Tip: for larger videos, desktop with enough free RAM gives the best results.</p>
         </footer>

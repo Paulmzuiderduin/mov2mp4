@@ -126,6 +126,44 @@ a {
   color: var(--muted);
 }
 
+.speed-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.speed-label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mode-pill {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.mode-pill.is-active {
+  border-color: rgba(21, 59, 46, 0.26);
+  background: var(--panel-soft);
+  color: var(--brand-dark);
+}
+
+.speed-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
 .dropzone.is-dragging {
   border-color: var(--brand);
   background: #f3fbf6;
@@ -193,6 +231,11 @@ a {
   margin: 0.65rem 0 0;
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.item-hint {
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
 }
 
 .queue {
@@ -321,4 +364,3 @@ a {
     border-radius: 0.9rem;
   }
 }
-
