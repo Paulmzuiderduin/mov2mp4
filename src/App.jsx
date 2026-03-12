@@ -41,11 +41,29 @@ async function createFFmpeg(progressHandler) {
   return ffmpeg;
 }
 
-async function tryCommands(ffmpeg, commands) {
+function normalizeErrorMessage(error) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'string' && error.trim()) return error;
+  try {
+    const serialized = JSON.stringify(error);
+    if (serialized && serialized !== '{}') return serialized;
+  } catch (serializeError) {
+    // ignore serialization failure
+  }
+  return 'Unknown conversion error.';
+}
+
+async function tryCommands(ffmpeg, commands, getLogTail) {
   let lastError = null;
   for (const command of commands) {
     try {
-      await ffmpeg.exec(command);
+      const code = await ffmpeg.exec(command);
+      if (code !== 0) {
+        const tail = getLogTail();
+        throw new Error(
+          tail ? `FFmpeg exited with code ${code}. ${tail}` : `FFmpeg exited with code ${code}.`
+        );
+      }
       return;
     } catch (error) {
       lastError = error;
@@ -56,6 +74,7 @@ async function tryCommands(ffmpeg, commands) {
 
 export default function App() {
   const ffmpegRef = useRef(null);
+  const ffmpegLogRef = useRef([]);
   const activeItemIdRef = useRef(null);
   const inputRef = useRef(null);
   const queueRef = useRef([]);
@@ -110,6 +129,14 @@ export default function App() {
             item.id === id ? { ...item, progress: Math.max(item.progress, nextProgress) } : item
           )
         );
+      });
+
+      ffmpeg.on('log', ({ message, type }) => {
+        if (!message || (type !== 'stderr' && type !== 'stdout')) return;
+        ffmpegLogRef.current.push(message.trim());
+        if (ffmpegLogRef.current.length > 60) {
+          ffmpegLogRef.current = ffmpegLogRef.current.slice(-60);
+        }
       });
 
       ffmpegRef.current = ffmpeg;
@@ -176,18 +203,21 @@ export default function App() {
 
   const runConversionForItem = async (item) => {
     const ffmpeg = await ensureEngine();
+    ffmpegLogRef.current = [];
     const inputName = `input-${item.id}.mov`;
     const outputName = `output-${item.id}.mp4`;
 
     await ffmpeg.writeFile(inputName, await fetchFile(item.file));
 
+    const logTail = () => {
+      const lines = ffmpegLogRef.current.filter(Boolean);
+      if (!lines.length) return '';
+      return `Last ffmpeg logs: ${lines.slice(-6).join(' | ')}`;
+    };
+
     const primary = [
       '-i',
       inputName,
-      '-map',
-      '0:v:0',
-      '-map',
-      '0:a?',
       '-c:v',
       'libx264',
       '-preset',
@@ -197,23 +227,19 @@ export default function App() {
       '-c:a',
       'aac',
       '-b:a',
-      '160k',
+      '128k',
       '-movflags',
       '+faststart',
       outputName
     ];
 
-    const fallback = [
+    const fallbackMpeg4 = [
       '-i',
       inputName,
-      '-map',
-      '0:v:0',
-      '-map',
-      '0:a?',
       '-c:v',
       'mpeg4',
       '-q:v',
-      '4',
+      '5',
       '-c:a',
       'aac',
       '-b:a',
@@ -223,9 +249,40 @@ export default function App() {
       outputName
     ];
 
+    const fallbackNoAudio = [
+      '-i',
+      inputName,
+      '-an',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'veryfast',
+      '-crf',
+      '22',
+      '-movflags',
+      '+faststart',
+      outputName
+    ];
+
+    const fallbackDefault = [
+      '-i',
+      inputName,
+      '-movflags',
+      '+faststart',
+      outputName
+    ];
+
     try {
-      await tryCommands(ffmpeg, [primary, fallback]);
+      await tryCommands(ffmpeg, [primary, fallbackMpeg4, fallbackNoAudio, fallbackDefault], logTail);
       const data = await ffmpeg.readFile(outputName);
+      if (!(data instanceof Uint8Array) || data.byteLength === 0) {
+        const tail = logTail();
+        throw new Error(
+          tail
+            ? `Conversion finished but produced no output file. ${tail}`
+            : 'Conversion finished but produced no output file.'
+        );
+      }
       const blob = new Blob([data.buffer], { type: 'video/mp4' });
       const downloadUrl = URL.createObjectURL(blob);
 
@@ -288,8 +345,7 @@ export default function App() {
         try {
           await runConversionForItem(item);
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : 'Unknown conversion error.';
+          const message = normalizeErrorMessage(error);
           setQueue((prev) =>
             prev.map((entry) =>
               entry.id === id
