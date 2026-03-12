@@ -2,10 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
-const CORE_BASES = [
-  'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd',
-  'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd'
-];
+const CORE_BASE = '/ffmpeg';
 
 const ACCEPT_PATTERN = /\.mov$/i;
 
@@ -36,25 +33,12 @@ function makeId() {
 async function createFFmpeg(progressHandler) {
   const ffmpeg = new FFmpeg();
   ffmpeg.on('progress', progressHandler);
-
-  let lastError = null;
-
-  for (const base of CORE_BASES) {
-    try {
-      const [coreURL, wasmURL, workerURL] = await Promise.all([
-        toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
-        toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
-        toBlobURL(`${base}/ffmpeg-core.worker.js`, 'text/javascript')
-      ]);
-
-      await ffmpeg.load({ coreURL, wasmURL, workerURL });
-      return ffmpeg;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError || new Error('Could not load ffmpeg core.');
+  const [coreURL, wasmURL] = await Promise.all([
+    toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, 'text/javascript'),
+    toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, 'application/wasm')
+  ]);
+  await ffmpeg.load({ coreURL, wasmURL });
+  return ffmpeg;
 }
 
 async function tryCommands(ffmpeg, commands) {

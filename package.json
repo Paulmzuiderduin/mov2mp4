@@ -4,11 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "sync:ffmpeg-core": "node scripts/sync-ffmpeg-core.mjs",
+    "dev": "npm run sync:ffmpeg-core && vite",
+    "build": "npm run sync:ffmpeg-core && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ffmpeg/core": "^0.12.6",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "react": "^18.3.1",
@@ -19,4 +21,3 @@
     "vite": "^5.4.0"
   }
 }
-
