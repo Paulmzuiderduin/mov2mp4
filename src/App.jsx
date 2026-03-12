@@ -97,7 +97,7 @@ export default function App() {
     }
 
     setEngineStatus('loading');
-    setEngineMessage('Converter engine laden...');
+    setEngineMessage('Loading converter engine...');
 
     try {
       const ffmpeg = await createFFmpeg(({ progress }) => {
@@ -114,11 +114,11 @@ export default function App() {
 
       ffmpegRef.current = ffmpeg;
       setEngineStatus('ready');
-      setEngineMessage('Engine klaar.');
+      setEngineMessage('Engine ready.');
       return ffmpeg;
     } catch (error) {
       setEngineStatus('error');
-      setEngineMessage('Laden van converter engine mislukt.');
+      setEngineMessage('Failed to load converter engine.');
       throw error;
     }
   };
@@ -131,7 +131,7 @@ export default function App() {
     const ignored = picked.length - valid.length;
 
     if (ignored > 0) {
-      setNotice(`${ignored} bestand(en) overgeslagen: alleen .MOV wordt toegevoegd.`);
+      setNotice(`${ignored} file(s) skipped: only .MOV files are accepted.`);
     } else {
       setNotice('');
     }
@@ -289,7 +289,7 @@ export default function App() {
           await runConversionForItem(item);
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : 'Onbekende fout tijdens converteren.';
+            error instanceof Error ? error.message : 'Unknown conversion error.';
           setQueue((prev) =>
             prev.map((entry) =>
               entry.id === id
@@ -321,10 +321,10 @@ export default function App() {
   };
 
   const statusLabel = (item) => {
-    if (item.status === 'done') return 'Klaar';
-    if (item.status === 'converting') return `Converteren ${item.progress}%`;
-    if (item.status === 'error') return 'Fout';
-    return 'In wachtrij';
+    if (item.status === 'done') return 'Done';
+    if (item.status === 'converting') return `Converting ${item.progress}%`;
+    if (item.status === 'error') return 'Error';
+    return 'Queued';
   };
 
   return (
@@ -334,11 +334,11 @@ export default function App() {
 
       <main className="page">
         <header className="hero">
-          <p className="hero-tag">Paul Zuiderduin tools</p>
-          <h1>.MOV naar .mp4 zonder gedoe</h1>
+          <p className="hero-tag">Paul Zuiderduin Tools</p>
+          <h1>.MOV to .mp4, without the hassle</h1>
           <p className="hero-sub">
-            Sleep je bestanden erin, converteer lokaal in je browser en download direct als mp4.
-            Geen upload, geen account.
+            Drop your files in, convert locally in your browser, and download instantly as MP4.
+            No upload, no account.
           </p>
         </header>
 
@@ -352,12 +352,12 @@ export default function App() {
           onDrop={handleDrop}
         >
           <div>
-            <strong>Sleep .MOV bestanden hierheen</strong>
-            <p>of kies bestanden handmatig</p>
+            <strong>Drop .MOV files here</strong>
+            <p>or choose files manually</p>
           </div>
           <div className="actions">
             <button type="button" onClick={triggerPicker} className="button button-secondary">
-              Kies bestanden
+              Choose files
             </button>
             <button
               type="button"
@@ -365,7 +365,7 @@ export default function App() {
               className="button button-primary"
               disabled={isBusy || queuedCount === 0}
             >
-              {isBusy ? 'Converteren...' : 'Converteer naar mp4'}
+              {isBusy ? 'Converting...' : 'Convert to MP4'}
             </button>
             <button
               type="button"
@@ -373,7 +373,7 @@ export default function App() {
               className="button button-ghost"
               disabled={queue.length === 0 || isBusy}
             >
-              Leegmaken
+              Clear
             </button>
           </div>
 
@@ -391,14 +391,14 @@ export default function App() {
           <span>
             Engine:{' '}
             <strong>
-              {engineStatus === 'idle' && 'Nog niet geladen'}
-              {engineStatus === 'loading' && 'Laden...'}
-              {engineStatus === 'ready' && 'Klaar'}
-              {engineStatus === 'error' && 'Fout'}
+              {engineStatus === 'idle' && 'Not loaded yet'}
+              {engineStatus === 'loading' && 'Loading...'}
+              {engineStatus === 'ready' && 'Ready'}
+              {engineStatus === 'error' && 'Error'}
             </strong>
           </span>
-          <span>Wachtrij: {queuedCount}</span>
-          <span>Klaar: {doneCount}</span>
+          <span>Queue: {queuedCount}</span>
+          <span>Done: {doneCount}</span>
         </section>
 
         {engineMessage ? <p className="hint">{engineMessage}</p> : null}
@@ -407,8 +407,8 @@ export default function App() {
         <section className="queue">
           {queue.length === 0 ? (
             <article className="empty-card">
-              <h2>Nog geen bestanden</h2>
-              <p>Voeg een of meer .MOV bestanden toe om te starten.</p>
+              <h2>No files yet</h2>
+              <p>Add one or more .MOV files to get started.</p>
             </article>
           ) : (
             queue.map((item, index) => (
@@ -426,7 +426,7 @@ export default function App() {
                 <div className="queue-actions">
                   {item.downloadUrl ? (
                     <a className="button button-primary" href={item.downloadUrl} download={item.outputName}>
-                      Download mp4
+                      Download MP4
                     </a>
                   ) : null}
                   <button
@@ -435,7 +435,7 @@ export default function App() {
                     disabled={isBusy && item.status === 'converting'}
                     onClick={() => removeItem(item.id)}
                   >
-                    Verwijder
+                    Remove
                   </button>
                 </div>
               </article>
@@ -445,10 +445,10 @@ export default function App() {
 
         <footer className="footer-note">
           <p>
-            Deze app probeert eerst H.264/AAC voor maximale compatibiliteit en valt terug op een
-            tweede codec-profiel als dat nodig is.
+            This app tries H.264/AAC first for maximum compatibility, then falls back to a
+            secondary codec profile if needed.
           </p>
-          <p>Tip: bij grote videobestanden werkt dit het best op desktop met voldoende vrije RAM.</p>
+          <p>Tip: for larger videos, desktop with enough free RAM gives the best results.</p>
         </footer>
       </main>
     </div>

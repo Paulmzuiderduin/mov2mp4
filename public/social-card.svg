@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
   <title id="title">MOV2MP4 social card</title>
-  <desc id="desc">Converteer MOV naar MP4 zonder upload</desc>
+  <desc id="desc">Convert MOV to MP4 with no upload</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#153b2e" />
@@ -32,8 +32,7 @@
   <g transform="translate(630 145)">
     <text x="0" y="0" fill="#d9f0e5" font-family="Space Grotesk, Segoe UI, sans-serif" font-size="34" font-weight="700" letter-spacing="0.12em">PAUL ZUIDERDUIN TOOLS</text>
     <text x="0" y="120" fill="#ffffff" font-family="Space Grotesk, Segoe UI, sans-serif" font-size="102" font-weight="700" letter-spacing="-0.04em">MOV2MP4</text>
-    <text x="0" y="190" fill="#d4e9dd" font-family="Space Grotesk, Segoe UI, sans-serif" font-size="40" font-weight="500">Simpel. Lokaal. Betrouwbaar.</text>
+    <text x="0" y="190" fill="#d4e9dd" font-family="Space Grotesk, Segoe UI, sans-serif" font-size="40" font-weight="500">Simple. Local. Reliable.</text>
     <text x="0" y="300" fill="#f3b068" font-family="IBM Plex Mono, Menlo, monospace" font-size="36" font-weight="500">mov2mp4.paulzuiderduin.com</text>
   </g>
 </svg>
-

@@ -1,8 +1,8 @@
 {
   "name": "MOV2MP4",
   "short_name": "MOV2MP4",
-  "description": "Converteer .MOV naar .mp4 direct in je browser.",
-  "lang": "nl-NL",
+  "description": "Convert .MOV to .mp4 directly in your browser.",
+  "lang": "en-US",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4f8f3",
@@ -15,4 +15,3 @@
     }
   ]
 }
-
