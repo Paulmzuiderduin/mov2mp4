@@ -3,83 +3,8 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 
 const CORE_BASE = '/ffmpeg';
-
 const ACCEPT_PATTERN = /\.mov$/i;
-const CONSENT_STORAGE_KEY = 'mov2mp4-consent-v1';
-const DEFAULT_ANALYTICS_RUNTIME = {
-  consent: 'unknown',
-  scriptRequested: false,
-  scriptReady: false,
-  configured: false,
-  lastError: null,
-  lastEventName: null,
-  lastEventAt: null
-};
-
-function loadConsentState() {
-  if (typeof window === 'undefined') {
-    return 'unknown';
-  }
-
-  if (typeof window.getMov2Mp4Consent === 'function') {
-    const value = window.getMov2Mp4Consent();
-    if (value === 'granted' || value === 'denied' || value === 'unknown') {
-      return value;
-    }
-  }
-
-  try {
-    const stored = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-    if (stored === 'granted' || stored === 'denied') {
-      return stored;
-    }
-  } catch (error) {
-    // Ignore local storage access issues.
-  }
-
-  return 'unknown';
-}
-
-function loadAnalyticsRuntime() {
-  if (typeof window === 'undefined') {
-    return DEFAULT_ANALYTICS_RUNTIME;
-  }
-
-  if (typeof window.getMov2Mp4AnalyticsRuntime === 'function') {
-    try {
-      const runtime = window.getMov2Mp4AnalyticsRuntime();
-      if (runtime && typeof runtime === 'object') {
-        return { ...DEFAULT_ANALYTICS_RUNTIME, ...runtime };
-      }
-    } catch (error) {
-      // Ignore runtime getter errors.
-    }
-  }
-
-  if (window.__mov2mp4AnalyticsRuntime && typeof window.__mov2mp4AnalyticsRuntime === 'object') {
-    return { ...DEFAULT_ANALYTICS_RUNTIME, ...window.__mov2mp4AnalyticsRuntime };
-  }
-
-  return {
-    ...DEFAULT_ANALYTICS_RUNTIME,
-    consent: loadConsentState()
-  };
-}
-
-function trackAnalyticsEvent(eventName, params = {}) {
-  if (typeof window === 'undefined' || !eventName) {
-    return;
-  }
-
-  if (typeof window.trackMov2Mp4Event === 'function') {
-    window.trackMov2Mp4Event(eventName, params);
-    return;
-  }
-
-  if (loadConsentState() === 'granted' && typeof window.gtag === 'function') {
-    window.gtag('event', eventName, params);
-  }
-}
+const LARGE_FILE_THRESHOLD_BYTES = 300 * 1024 * 1024;
 
 function fileBaseName(name) {
   const withoutPath = name.replace(/^.*[\\/]/, '');
@@ -122,9 +47,35 @@ function normalizeErrorMessage(error) {
     const serialized = JSON.stringify(error);
     if (serialized && serialized !== '{}') return serialized;
   } catch (serializeError) {
-    // ignore serialization failure
+    // Ignore serialization failures.
   }
   return 'Unknown conversion error.';
+}
+
+function buildFriendlyErrorSummary(message, speedMode) {
+  const lower = String(message || '').toLowerCase();
+
+  if (lower.includes('failed to load converter engine') || lower.includes('failed to import ffmpeg-core')) {
+    return 'The converter could not start in this browser. Refresh the page and try again.';
+  }
+
+  if (lower.includes('still loading')) {
+    return 'The converter is still starting. Wait a moment and try again.';
+  }
+
+  if (lower.includes('produced no output')) {
+    return 'This file could not be turned into a usable MP4 in the browser.';
+  }
+
+  if (lower.includes('memory') || lower.includes('out of bounds') || lower.includes('abort')) {
+    return 'This file is likely too heavy for this browser session. Try a smaller file or use a desktop browser with more free memory.';
+  }
+
+  if (speedMode === 'fastest') {
+    return 'This file could not be converted with the current settings. Try Balanced mode for a slower but more compatible export.';
+  }
+
+  return 'This file could not be converted in the browser. Try a shorter clip or another browser.';
 }
 
 async function tryCommands(ffmpeg, commands, getLogTail) {
@@ -288,10 +239,51 @@ function buildConversionPlans(inputName, outputName, speedMode) {
   ];
 }
 
+function getOverviewStatus(engineStatus, isBusy, queueLength, queuedCount, doneCount, activeFileName) {
+  if (engineStatus === 'loading') {
+    return {
+      title: 'Starting the converter',
+      detail: 'This takes a few seconds the first time you use it.'
+    };
+  }
+
+  if (engineStatus === 'error') {
+    return {
+      title: 'Converter not ready',
+      detail: 'Refresh the page and try again. If it still fails, try another browser.'
+    };
+  }
+
+  if (isBusy) {
+    return {
+      title: activeFileName ? `Converting ${activeFileName}` : 'Converting your file',
+      detail: 'Keep this tab open until the MP4 download button appears.'
+    };
+  }
+
+  if (queueLength === 0) {
+    return {
+      title: 'Add a .MOV file to begin',
+      detail: 'Your video stays on your device. Nothing is uploaded.'
+    };
+  }
+
+  if (queuedCount > 0) {
+    return {
+      title: `Ready to convert ${queuedCount} file${queuedCount === 1 ? '' : 's'}`,
+      detail: doneCount > 0 ? `${doneCount} file${doneCount === 1 ? '' : 's'} already finished.` : 'Choose Convert to MP4 when you are ready.'
+    };
+  }
+
+  return {
+    title: 'Finished',
+    detail: `${doneCount} file${doneCount === 1 ? '' : 's'} ready to download.`
+  };
+}
+
 export default function App() {
   const ffmpegRef = useRef(null);
   const ffmpegLogRef = useRef([]);
-  const hasTrackedModeRef = useRef(false);
   const activeItemIdRef = useRef(null);
   const inputRef = useRef(null);
   const queueRef = useRef([]);
@@ -300,11 +292,10 @@ export default function App() {
   const [isBusy, setIsBusy] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [speedMode, setSpeedMode] = useState('fastest');
-  const [consentState, setConsentState] = useState(loadConsentState);
-  const [analyticsRuntime, setAnalyticsRuntime] = useState(loadAnalyticsRuntime);
   const [engineStatus, setEngineStatus] = useState('idle');
   const [engineMessage, setEngineMessage] = useState('');
   const [notice, setNotice] = useState('');
+  const [activeFileName, setActiveFileName] = useState('');
 
   useEffect(() => {
     queueRef.current = queue;
@@ -329,107 +320,26 @@ export default function App() {
     [queue]
   );
 
-  const analyticsStatus = useMemo(() => {
-    if (consentState !== 'granted') {
-      return { level: 'off', message: 'Analytics disabled.' };
-    }
+  const largestFile = useMemo(() => {
+    return queue.reduce((largest, item) => (item.file.size > largest.file.size ? item : largest), {
+      file: { size: 0 }
+    });
+  }, [queue]);
 
-    if (analyticsRuntime.lastError === 'script_load_failed' || analyticsRuntime.lastError === 'script_load_timeout') {
-      return { level: 'warning', message: 'Analytics blocked by browser/privacy settings.' };
-    }
+  const overviewStatus = useMemo(
+    () => getOverviewStatus(engineStatus, isBusy, queue.length, queuedCount, doneCount, activeFileName),
+    [activeFileName, doneCount, engineStatus, isBusy, queue.length, queuedCount]
+  );
 
-    if (analyticsRuntime.configured || analyticsRuntime.scriptReady) {
-      return { level: 'on', message: 'Analytics active.' };
-    }
+  const modeDescription =
+    speedMode === 'fastest'
+      ? 'Recommended for most files. It tries the quickest route first and only re-encodes when needed.'
+      : 'Use this if Fastest fails or if you want a slower, more compatibility-focused export.';
 
-    if (analyticsRuntime.scriptRequested) {
-      return { level: 'notice', message: 'Connecting analytics...' };
-    }
-
-    return { level: 'notice', message: 'Waiting for analytics startup...' };
-  }, [analyticsRuntime, consentState]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-
-    const syncConsent = (event) => {
-      const nextState = event?.detail?.state;
-      if (nextState === 'granted' || nextState === 'denied' || nextState === 'unknown') {
-        setConsentState(nextState);
-      } else {
-        setConsentState(loadConsentState());
-      }
-    };
-
-    window.addEventListener('mov2mp4-consent-changed', syncConsent);
-    return () => window.removeEventListener('mov2mp4-consent-changed', syncConsent);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-
-    const syncRuntime = (event) => {
-      const runtime = event?.detail;
-      if (runtime && typeof runtime === 'object') {
-        setAnalyticsRuntime({ ...DEFAULT_ANALYTICS_RUNTIME, ...runtime });
-      } else {
-        setAnalyticsRuntime(loadAnalyticsRuntime());
-      }
-    };
-
-    window.addEventListener('mov2mp4-analytics-runtime-changed', syncRuntime);
-    return () => window.removeEventListener('mov2mp4-analytics-runtime-changed', syncRuntime);
-  }, []);
-
-  useEffect(() => {
-    if (consentState !== 'granted') {
-      return;
-    }
-    trackAnalyticsEvent('mov2mp4_view', { page: 'home' });
-  }, [consentState]);
-
-  useEffect(() => {
-    if (!hasTrackedModeRef.current) {
-      hasTrackedModeRef.current = true;
-      return;
-    }
-    trackAnalyticsEvent('mov2mp4_mode_change', { mode: speedMode });
-  }, [speedMode]);
-
-  const setConsent = (nextState) => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (typeof window.setMov2Mp4Consent === 'function') {
-      try {
-        window.setMov2Mp4Consent(nextState);
-      } catch (error) {
-        // Fallback to local storage only.
-        try {
-          window.localStorage.setItem(CONSENT_STORAGE_KEY, nextState);
-        } catch (storageError) {
-          // Ignore storage access errors.
-        }
-      }
-      setConsentState(loadConsentState());
-      setAnalyticsRuntime(loadAnalyticsRuntime());
-      trackAnalyticsEvent('mov2mp4_consent_change', { state: nextState });
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(CONSENT_STORAGE_KEY, nextState);
-    } catch (error) {
-      // Ignore storage access errors.
-    }
-    setConsentState(nextState);
-    setAnalyticsRuntime((current) => ({ ...current, consent: nextState }));
-  };
+  const largeFileNote =
+    largestFile.file.size >= LARGE_FILE_THRESHOLD_BYTES
+      ? `Large file detected (${formatBytes(largestFile.file.size)}). Keep this tab open. Conversion can take several minutes in the browser.`
+      : 'Works best for short to medium clips. Very large videos can take longer because conversion happens in your browser.';
 
   const ensureEngine = async () => {
     if (ffmpegRef.current) return ffmpegRef.current;
@@ -438,7 +348,7 @@ export default function App() {
     }
 
     setEngineStatus('loading');
-    setEngineMessage('Loading converter engine...');
+    setEngineMessage('Loading the converter for the first time...');
 
     try {
       const ffmpeg = await createFFmpeg(({ progress }) => {
@@ -463,11 +373,11 @@ export default function App() {
 
       ffmpegRef.current = ffmpeg;
       setEngineStatus('ready');
-      setEngineMessage('Engine ready.');
+      setEngineMessage('Converter ready.');
       return ffmpeg;
     } catch (error) {
       setEngineStatus('error');
-      setEngineMessage('Failed to load converter engine.');
+      setEngineMessage('Could not load the converter in this browser.');
       throw error;
     }
   };
@@ -477,22 +387,7 @@ export default function App() {
     if (!picked.length) return;
 
     const valid = picked.filter((file) => ACCEPT_PATTERN.test(file.name));
-    const ignored = picked.length - valid.length;
-    const totalBytes = valid.reduce((sum, file) => sum + file.size, 0);
-
-    if (ignored > 0) {
-      setNotice(`${ignored} file(s) skipped: only .MOV files are accepted.`);
-    } else {
-      setNotice('');
-    }
-
-    if (!valid.length) return;
-
-    trackAnalyticsEvent('mov2mp4_files_added', {
-      accepted_count: valid.length,
-      ignored_count: ignored,
-      total_input_mb: Math.round(totalBytes / (1024 * 1024))
-    });
+    const invalidCount = picked.length - valid.length;
 
     setQueue((prev) => {
       const existing = new Set(prev.map((item) => `${item.file.name}:${item.file.size}`));
@@ -504,36 +399,41 @@ export default function App() {
           status: 'queued',
           progress: 0,
           error: '',
+          errorDetails: '',
           downloadUrl: '',
           outputName: safeDownloadName(file.name),
           methodUsed: ''
         }));
+
+      const duplicateCount = valid.length - additions.length;
+      const messages = [];
+      if (additions.length > 0) {
+        messages.push(`${additions.length} file${additions.length === 1 ? '' : 's'} added.`);
+      }
+      if (invalidCount > 0) {
+        messages.push(`${invalidCount} skipped because only .MOV files are supported.`);
+      }
+      if (duplicateCount > 0) {
+        messages.push(`${duplicateCount} already in the list.`);
+      }
+      setNotice(messages.join(' '));
+
       return prev.concat(additions);
     });
   };
 
   const clearQueue = () => {
-    const currentCount = queueRef.current.length;
-    if (currentCount > 0) {
-      trackAnalyticsEvent('mov2mp4_queue_clear', { item_count: currentCount });
-    }
     setQueue((prev) => {
       prev.forEach((item) => {
         if (item.downloadUrl) URL.revokeObjectURL(item.downloadUrl);
       });
       return [];
     });
-    setNotice('');
+    setActiveFileName('');
+    setNotice('Queue cleared.');
   };
 
   const removeItem = (id) => {
-    const target = queueRef.current.find((item) => item.id === id);
-    if (target) {
-      trackAnalyticsEvent('mov2mp4_queue_remove', {
-        item_status: target.status,
-        file_size_mb: Math.round(target.file.size / (1024 * 1024))
-      });
-    }
     setQueue((prev) =>
       prev.filter((item) => {
         if (item.id === id && item.downloadUrl) URL.revokeObjectURL(item.downloadUrl);
@@ -572,16 +472,6 @@ export default function App() {
       }
       const blob = new Blob([data.buffer], { type: 'video/mp4' });
       const downloadUrl = URL.createObjectURL(blob);
-      const durationSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
-      const outputMb = Math.round(blob.size / (1024 * 1024));
-
-      trackAnalyticsEvent('mov2mp4_conversion_success', {
-        speed_mode: speedMode,
-        method: methodUsed,
-        input_mb: Math.round(item.file.size / (1024 * 1024)),
-        output_mb: outputMb,
-        duration_seconds: durationSeconds
-      });
 
       setQueue((prev) =>
         prev.map((entry) =>
@@ -591,22 +481,28 @@ export default function App() {
                 status: 'done',
                 progress: 100,
                 error: '',
+                errorDetails: '',
                 downloadUrl,
                 methodUsed
               }
             : entry
         )
       );
+
+      const durationSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+      setNotice(
+        `${item.file.name} finished in about ${durationSeconds} second${durationSeconds === 1 ? '' : 's'}.`
+      );
     } finally {
       try {
         await ffmpeg.deleteFile(inputName);
       } catch (error) {
-        // ignore cleanup errors
+        // Ignore cleanup errors.
       }
       try {
         await ffmpeg.deleteFile(outputName);
       } catch (error) {
-        // ignore cleanup errors
+        // Ignore cleanup errors.
       }
     }
   };
@@ -618,11 +514,6 @@ export default function App() {
 
     if (!pendingIds.length || isBusy) return;
 
-    trackAnalyticsEvent('mov2mp4_conversion_start', {
-      queue_count: pendingIds.length,
-      speed_mode: speedMode
-    });
-
     setIsBusy(true);
     setNotice('');
 
@@ -632,6 +523,7 @@ export default function App() {
         if (!item) continue;
 
         activeItemIdRef.current = id;
+        setActiveFileName(item.file.name);
         setQueue((prev) =>
           prev.map((entry) =>
             entry.id === id
@@ -640,6 +532,7 @@ export default function App() {
                   status: 'converting',
                   progress: Math.max(entry.progress, 1),
                   error: '',
+                  errorDetails: '',
                   methodUsed: ''
                 }
               : entry
@@ -649,19 +542,15 @@ export default function App() {
         try {
           await runConversionForItem(item);
         } catch (error) {
-          const message = normalizeErrorMessage(error);
-          trackAnalyticsEvent('mov2mp4_conversion_error', {
-            speed_mode: speedMode,
-            file_size_mb: Math.round(item.file.size / (1024 * 1024)),
-            error_preview: String(message).slice(0, 140)
-          });
+          const details = normalizeErrorMessage(error);
           setQueue((prev) =>
             prev.map((entry) =>
               entry.id === id
                 ? {
                     ...entry,
                     status: 'error',
-                    error: message,
+                    error: buildFriendlyErrorSummary(details, speedMode),
+                    errorDetails: details,
                     progress: 0
                   }
                 : entry
@@ -671,6 +560,7 @@ export default function App() {
       }
     } finally {
       activeItemIdRef.current = null;
+      setActiveFileName('');
       setIsBusy(false);
     }
   };
@@ -686,10 +576,10 @@ export default function App() {
   };
 
   const statusLabel = (item) => {
-    if (item.status === 'done') return 'Done';
+    if (item.status === 'done') return 'Ready to download';
     if (item.status === 'converting') return `Converting ${item.progress}%`;
-    if (item.status === 'error') return 'Error';
-    return 'Queued';
+    if (item.status === 'error') return 'Needs another try';
+    return 'Ready to convert';
   };
 
   return (
@@ -702,10 +592,34 @@ export default function App() {
           <p className="hero-tag">Paul Zuiderduin Tools</p>
           <h1>.MOV to .mp4, without the hassle</h1>
           <p className="hero-sub">
-            Drop your files in, convert locally in your browser, and download instantly as MP4.
-            No upload, no account.
+            Add your QuickTime video, convert it locally in your browser, and download an MP4.
+            No upload, no account, no waiting for a server.
           </p>
         </header>
+
+        <section className="workflow" aria-label="How it works">
+          <article className="workflow-step">
+            <span className="workflow-number">1</span>
+            <div>
+              <strong>Add your .MOV</strong>
+              <p>Drag and drop or choose files from your device.</p>
+            </div>
+          </article>
+          <article className="workflow-step">
+            <span className="workflow-number">2</span>
+            <div>
+              <strong>Convert locally</strong>
+              <p>The conversion happens in this tab, so your video stays on your device.</p>
+            </div>
+          </article>
+          <article className="workflow-step">
+            <span className="workflow-number">3</span>
+            <div>
+              <strong>Download the MP4</strong>
+              <p>When it finishes, a download button appears next to each file.</p>
+            </div>
+          </article>
+        </section>
 
         <section
           className={`dropzone ${isDragging ? 'is-dragging' : ''}`}
@@ -720,33 +634,29 @@ export default function App() {
             <strong>Drop .MOV files here</strong>
             <p>or choose files manually</p>
           </div>
-          <div className="speed-mode">
+
+          <div className="speed-mode" aria-label="Conversion mode">
             <span className="speed-label">Mode</span>
             <button
               type="button"
               className={`mode-pill ${speedMode === 'fastest' ? 'is-active' : ''}`}
-              onClick={() => {
-                setSpeedMode('fastest');
-              }}
+              onClick={() => setSpeedMode('fastest')}
               disabled={isBusy}
             >
-              Fastest
+              Fastest (recommended)
             </button>
             <button
               type="button"
               className={`mode-pill ${speedMode === 'balanced' ? 'is-active' : ''}`}
-              onClick={() => {
-                setSpeedMode('balanced');
-              }}
+              onClick={() => setSpeedMode('balanced')}
               disabled={isBusy}
             >
               Balanced
             </button>
           </div>
-          <p className="speed-note">
-            Fastest first tries a direct stream copy (often much quicker), then falls back to fast
-            re-encoding only if needed.
-          </p>
+
+          <p className="speed-note">{modeDescription}</p>
+
           <div className="actions">
             <button type="button" onClick={triggerPicker} className="button button-secondary">
               Choose files
@@ -769,6 +679,11 @@ export default function App() {
             </button>
           </div>
 
+          <div className="large-file-note" role="status" aria-live="polite">
+            <strong>Before you start:</strong>
+            <span>{largeFileNote}</span>
+          </div>
+
           <input
             ref={inputRef}
             type="file"
@@ -779,43 +694,41 @@ export default function App() {
           />
         </section>
 
-        <section className="status-strip" aria-live="polite">
-          <span>
-            Engine:{' '}
-            <strong>
-              {engineStatus === 'idle' && 'Not loaded yet'}
-              {engineStatus === 'loading' && 'Loading...'}
-              {engineStatus === 'ready' && 'Ready'}
-              {engineStatus === 'error' && 'Error'}
-            </strong>
-          </span>
-          <span>Queue: {queuedCount}</span>
-          <span>Done: {doneCount}</span>
-          <span>Mode: {speedMode === 'fastest' ? 'Fastest' : 'Balanced'}</span>
+        <section className="status-panel" aria-live="polite">
+          <div>
+            <p className="status-kicker">Status</p>
+            <h2 className="status-title">{overviewStatus.title}</h2>
+            <p className="status-detail">{overviewStatus.detail}</p>
+          </div>
+          <div className="status-metrics">
+            <div className="status-metric">
+              <span className="status-metric-label">Files waiting</span>
+              <strong>{queuedCount}</strong>
+            </div>
+            <div className="status-metric">
+              <span className="status-metric-label">Completed</span>
+              <strong>{doneCount}</strong>
+            </div>
+            <div className="status-metric">
+              <span className="status-metric-label">Converter</span>
+              <strong>
+                {engineStatus === 'idle' && 'Not loaded yet'}
+                {engineStatus === 'loading' && 'Starting'}
+                {engineStatus === 'ready' && 'Ready'}
+                {engineStatus === 'error' && 'Unavailable'}
+              </strong>
+            </div>
+          </div>
         </section>
 
         {engineMessage ? <p className="hint">{engineMessage}</p> : null}
         {notice ? <p className="hint">{notice}</p> : null}
 
-        {consentState === 'unknown' ? (
-          <section className="consent-banner" role="region" aria-label="Analytics consent">
-            <p>Allow optional analytics so we can improve conversion quality and reliability.</p>
-            <div className="consent-actions">
-              <button type="button" className="button button-primary" onClick={() => setConsent('granted')}>
-                Allow analytics
-              </button>
-              <button type="button" className="button button-ghost" onClick={() => setConsent('denied')}>
-                Decline
-              </button>
-            </div>
-          </section>
-        ) : null}
-
         <section className="queue">
           {queue.length === 0 ? (
             <article className="empty-card">
               <h2>No files yet</h2>
-              <p>Add one or more .MOV files to get started.</p>
+              <p>Add one or more .MOV files to start the conversion.</p>
             </article>
           ) : (
             queue.map((item, index) => (
@@ -828,23 +741,20 @@ export default function App() {
                   <div className="progress">
                     <span style={{ width: `${item.progress}%` }} />
                   </div>
-                  {item.methodUsed ? <p className="hint item-hint">{item.methodUsed}</p> : null}
+                  {item.methodUsed ? (
+                    <p className="hint item-hint">Method used: {item.methodUsed}</p>
+                  ) : null}
                   {item.error ? <p className="error">{item.error}</p> : null}
+                  {item.errorDetails ? (
+                    <details className="error-details">
+                      <summary>Show technical details</summary>
+                      <p>{item.errorDetails}</p>
+                    </details>
+                  ) : null}
                 </div>
                 <div className="queue-actions">
                   {item.downloadUrl ? (
-                    <a
-                      className="button button-primary"
-                      href={item.downloadUrl}
-                      download={item.outputName}
-                      onClick={() => {
-                        trackAnalyticsEvent('mov2mp4_download', {
-                          speed_mode: speedMode,
-                          method: item.methodUsed || 'unknown',
-                          output_name: item.outputName
-                        });
-                      }}
-                    >
+                    <a className="button button-primary" href={item.downloadUrl} download={item.outputName}>
                       Download MP4
                     </a>
                   ) : null}
@@ -863,29 +773,8 @@ export default function App() {
         </section>
 
         <footer className="footer-note">
-          <p>
-            Fastest mode can be dramatically quicker for compatible MOV files because it attempts
-            direct stream copy before re-encoding.
-          </p>
-          <p>Tip: for larger videos, desktop with enough free RAM gives the best results.</p>
-          <div className="privacy-controls">
-            <span>Privacy:</span>
-            <button
-              type="button"
-              className={`privacy-pill ${consentState === 'granted' ? 'is-active' : ''}`}
-              onClick={() => setConsent('granted')}
-            >
-              Analytics on
-            </button>
-            <button
-              type="button"
-              className={`privacy-pill ${consentState === 'denied' ? 'is-active' : ''}`}
-              onClick={() => setConsent('denied')}
-            >
-              Analytics off
-            </button>
-            <span className={`analytics-runtime ${analyticsStatus.level}`}>{analyticsStatus.message}</span>
-          </div>
+          <p>Runs locally in your browser, so your source file stays on your device.</p>
+          <p>If a large file seems slow, keep the tab open and let the progress bar continue.</p>
         </footer>
       </main>
     </div>
