@@ -712,29 +712,6 @@ export default function App() {
             </div>
           </section>
 
-          <section className="workflow" aria-label="How it works">
-            <article className="workflow-step">
-              <span className="workflow-number">1</span>
-              <div>
-                <strong>Add your .MOV</strong>
-                <p>Drag and drop or choose files from your device.</p>
-              </div>
-            </article>
-            <article className="workflow-step">
-              <span className="workflow-number">2</span>
-              <div>
-                <strong>Convert locally</strong>
-                <p>The conversion happens in this tab, so your video stays on your device.</p>
-              </div>
-            </article>
-            <article className="workflow-step">
-              <span className="workflow-number">3</span>
-              <div>
-                <strong>Download the MP4</strong>
-                <p>When it finishes, a download button appears next to each file.</p>
-              </div>
-            </article>
-          </section>
         </section>
 
         {engineMessage ? <p className="hint">{engineMessage}</p> : null}
