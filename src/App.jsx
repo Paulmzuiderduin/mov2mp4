@@ -651,7 +651,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={startConversion}
-                  className="button button-primary"
+                  className="button button-primary primary-cta"
                   disabled={isBusy || queuedCount === 0}
                 >
                   {isBusy ? 'Converting...' : 'Convert to MP4'}
@@ -665,6 +665,10 @@ export default function App() {
                   Clear
                 </button>
               </div>
+
+              <p className="action-hint">
+                You can add multiple files before converting. The converter runs in this tab.
+              </p>
 
               <div className="large-file-note" role="status" aria-live="polite">
                 <strong>Before you start:</strong>

@@ -118,15 +118,16 @@ button {
 
 .converter-panel {
   position: relative;
-  padding: 1.3rem;
+  padding: 1.35rem;
   border-radius: 1.25rem;
-  border: 1px solid rgba(31, 107, 79, 0.26);
+  border: 1px solid rgba(31, 107, 79, 0.32);
   background:
-    linear-gradient(145deg, rgba(31, 107, 79, 0.16), rgba(233, 143, 47, 0.08)),
+    radial-gradient(circle at 18% 0%, rgba(31, 107, 79, 0.18), transparent 45%),
+    radial-gradient(circle at 88% 10%, rgba(233, 143, 47, 0.16), transparent 45%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 251, 247, 0.96));
   box-shadow:
-    0 28px 70px -42px rgba(16, 38, 29, 0.7),
-    0 0 0 1px rgba(31, 107, 79, 0.04);
+    0 30px 80px -46px rgba(16, 38, 29, 0.72),
+    0 0 0 1px rgba(31, 107, 79, 0.08);
   animation: rise 520ms ease both;
 }
 
@@ -142,8 +143,8 @@ button {
 .converter-panel.is-dragging {
   transform: translateY(-1px);
   box-shadow:
-    0 32px 76px -40px rgba(16, 38, 29, 0.78),
-    0 0 0 1px rgba(31, 107, 79, 0.08);
+    0 34px 86px -44px rgba(16, 38, 29, 0.82),
+    0 0 0 1px rgba(31, 107, 79, 0.12);
 }
 
 .converter-panel-header {
@@ -178,10 +179,10 @@ button {
 
 .dropzone {
   margin-top: 1rem;
-  border: 2px dashed rgba(31, 107, 79, 0.34);
+  border: 2px dashed rgba(31, 107, 79, 0.42);
   border-radius: 1.1rem;
-  padding: 1.2rem;
-  background: rgba(255, 255, 255, 0.92);
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(5px);
   display: grid;
   gap: 1rem;
@@ -261,19 +262,20 @@ button {
 }
 
 .mode-pill {
-  border: 1px solid var(--line);
-  background: #fff;
+  border: 1px solid rgba(16, 38, 29, 0.16);
+  background: #ffffff;
   color: var(--ink);
   border-radius: 999px;
-  padding: 0.45rem 0.75rem;
+  padding: 0.5rem 0.8rem;
   font-size: 0.84rem;
   font-weight: 700;
 }
 
 .mode-pill.is-active {
-  border-color: rgba(21, 59, 46, 0.26);
-  background: var(--panel-soft);
+  border-color: rgba(21, 59, 46, 0.4);
+  background: rgba(31, 107, 79, 0.12);
   color: var(--brand-dark);
+  box-shadow: 0 10px 20px -16px rgba(16, 38, 29, 0.6);
 }
 
 .speed-note {
@@ -287,6 +289,7 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 0.7rem;
+  align-items: center;
 }
 
 .button {
@@ -315,6 +318,15 @@ button {
   box-shadow: 0 10px 26px -18px rgba(12, 50, 36, 0.9);
 }
 
+.primary-cta {
+  padding: 0.78rem 1.3rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 18px 34px -24px rgba(12, 50, 36, 0.85),
+    0 0 0 1px rgba(21, 59, 46, 0.18);
+}
+
 .button-secondary {
   color: var(--ink);
   border-color: var(--line);
@@ -334,6 +346,13 @@ button {
   border: 1px solid rgba(233, 143, 47, 0.28);
   border-radius: 0.95rem;
   background: linear-gradient(180deg, rgba(255, 249, 240, 0.92), rgba(255, 255, 255, 0.9));
+}
+
+.action-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .large-file-note strong {
