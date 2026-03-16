@@ -597,128 +597,143 @@ export default function App() {
           </p>
         </header>
 
-        <section className="workflow" aria-label="How it works">
-          <article className="workflow-step">
-            <span className="workflow-number">1</span>
-            <div>
-              <strong>Add your .MOV</strong>
-              <p>Drag and drop or choose files from your device.</p>
+        <section className="top-layout">
+          <div
+            className={`converter-panel ${isDragging ? 'is-dragging' : ''}`}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+          >
+            <div className="converter-panel-header">
+              <p className="converter-kicker">Start Here</p>
+              <h2 className="converter-title">Convert your .MOV to MP4</h2>
+              <p className="converter-sub">
+                Drag in your file or pick it manually. The conversion runs in this browser tab,
+                then your MP4 is ready to download.
+              </p>
             </div>
-          </article>
-          <article className="workflow-step">
-            <span className="workflow-number">2</span>
-            <div>
-              <strong>Convert locally</strong>
-              <p>The conversion happens in this tab, so your video stays on your device.</p>
-            </div>
-          </article>
-          <article className="workflow-step">
-            <span className="workflow-number">3</span>
-            <div>
-              <strong>Download the MP4</strong>
-              <p>When it finishes, a download button appears next to each file.</p>
-            </div>
-          </article>
-        </section>
 
-        <section
-          className={`dropzone ${isDragging ? 'is-dragging' : ''}`}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={handleDrop}
-        >
-          <div>
-            <strong>Drop .MOV files here</strong>
-            <p>or choose files manually</p>
+            <section className="dropzone">
+              <div>
+                <strong>Drop .MOV files here</strong>
+                <p>or choose files manually</p>
+              </div>
+
+              <div className="speed-mode" aria-label="Conversion mode">
+                <span className="speed-label">Mode</span>
+                <button
+                  type="button"
+                  className={`mode-pill ${speedMode === 'fastest' ? 'is-active' : ''}`}
+                  onClick={() => setSpeedMode('fastest')}
+                  disabled={isBusy}
+                >
+                  Fastest (recommended)
+                </button>
+                <button
+                  type="button"
+                  className={`mode-pill ${speedMode === 'balanced' ? 'is-active' : ''}`}
+                  onClick={() => setSpeedMode('balanced')}
+                  disabled={isBusy}
+                >
+                  Balanced
+                </button>
+              </div>
+
+              <p className="speed-note">{modeDescription}</p>
+
+              <div className="actions">
+                <button type="button" onClick={triggerPicker} className="button button-secondary">
+                  Choose files
+                </button>
+                <button
+                  type="button"
+                  onClick={startConversion}
+                  className="button button-primary"
+                  disabled={isBusy || queuedCount === 0}
+                >
+                  {isBusy ? 'Converting...' : 'Convert to MP4'}
+                </button>
+                <button
+                  type="button"
+                  onClick={clearQueue}
+                  className="button button-ghost"
+                  disabled={queue.length === 0 || isBusy}
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="large-file-note" role="status" aria-live="polite">
+                <strong>Before you start:</strong>
+                <span>{largeFileNote}</span>
+              </div>
+
+              <input
+                ref={inputRef}
+                type="file"
+                accept=".mov,video/quicktime"
+                multiple
+                onChange={(event) => addFiles(event.target.files)}
+                hidden
+              />
+            </section>
           </div>
 
-          <div className="speed-mode" aria-label="Conversion mode">
-            <span className="speed-label">Mode</span>
-            <button
-              type="button"
-              className={`mode-pill ${speedMode === 'fastest' ? 'is-active' : ''}`}
-              onClick={() => setSpeedMode('fastest')}
-              disabled={isBusy}
-            >
-              Fastest (recommended)
-            </button>
-            <button
-              type="button"
-              className={`mode-pill ${speedMode === 'balanced' ? 'is-active' : ''}`}
-              onClick={() => setSpeedMode('balanced')}
-              disabled={isBusy}
-            >
-              Balanced
-            </button>
-          </div>
+          <aside className="support-rail">
+            <section className="status-panel" aria-live="polite">
+              <div>
+                <p className="status-kicker">Status</p>
+                <h2 className="status-title">{overviewStatus.title}</h2>
+                <p className="status-detail">{overviewStatus.detail}</p>
+              </div>
+              <div className="status-metrics">
+                <div className="status-metric">
+                  <span className="status-metric-label">Files waiting</span>
+                  <strong>{queuedCount}</strong>
+                </div>
+                <div className="status-metric">
+                  <span className="status-metric-label">Completed</span>
+                  <strong>{doneCount}</strong>
+                </div>
+                <div className="status-metric">
+                  <span className="status-metric-label">Converter</span>
+                  <strong>
+                    {engineStatus === 'idle' && 'Not loaded yet'}
+                    {engineStatus === 'loading' && 'Starting'}
+                    {engineStatus === 'ready' && 'Ready'}
+                    {engineStatus === 'error' && 'Unavailable'}
+                  </strong>
+                </div>
+              </div>
+            </section>
 
-          <p className="speed-note">{modeDescription}</p>
-
-          <div className="actions">
-            <button type="button" onClick={triggerPicker} className="button button-secondary">
-              Choose files
-            </button>
-            <button
-              type="button"
-              onClick={startConversion}
-              className="button button-primary"
-              disabled={isBusy || queuedCount === 0}
-            >
-              {isBusy ? 'Converting...' : 'Convert to MP4'}
-            </button>
-            <button
-              type="button"
-              onClick={clearQueue}
-              className="button button-ghost"
-              disabled={queue.length === 0 || isBusy}
-            >
-              Clear
-            </button>
-          </div>
-
-          <div className="large-file-note" role="status" aria-live="polite">
-            <strong>Before you start:</strong>
-            <span>{largeFileNote}</span>
-          </div>
-
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".mov,video/quicktime"
-            multiple
-            onChange={(event) => addFiles(event.target.files)}
-            hidden
-          />
-        </section>
-
-        <section className="status-panel" aria-live="polite">
-          <div>
-            <p className="status-kicker">Status</p>
-            <h2 className="status-title">{overviewStatus.title}</h2>
-            <p className="status-detail">{overviewStatus.detail}</p>
-          </div>
-          <div className="status-metrics">
-            <div className="status-metric">
-              <span className="status-metric-label">Files waiting</span>
-              <strong>{queuedCount}</strong>
-            </div>
-            <div className="status-metric">
-              <span className="status-metric-label">Completed</span>
-              <strong>{doneCount}</strong>
-            </div>
-            <div className="status-metric">
-              <span className="status-metric-label">Converter</span>
-              <strong>
-                {engineStatus === 'idle' && 'Not loaded yet'}
-                {engineStatus === 'loading' && 'Starting'}
-                {engineStatus === 'ready' && 'Ready'}
-                {engineStatus === 'error' && 'Unavailable'}
-              </strong>
-            </div>
-          </div>
+            <section className="workflow" aria-label="How it works">
+              <article className="workflow-step">
+                <span className="workflow-number">1</span>
+                <div>
+                  <strong>Add your .MOV</strong>
+                  <p>Drag and drop or choose files from your device.</p>
+                </div>
+              </article>
+              <article className="workflow-step">
+                <span className="workflow-number">2</span>
+                <div>
+                  <strong>Convert locally</strong>
+                  <p>The conversion happens in this tab, so your video stays on your device.</p>
+                </div>
+              </article>
+              <article className="workflow-step">
+                <span className="workflow-number">3</span>
+                <div>
+                  <strong>Download the MP4</strong>
+                  <p>When it finishes, a download button appears next to each file.</p>
+                </div>
+              </article>
+            </section>
+          </aside>
         </section>
 
         {engineMessage ? <p className="hint">{engineMessage}</p> : null}

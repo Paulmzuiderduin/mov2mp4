@@ -108,12 +108,105 @@ button {
   font-size: 1.05rem;
 }
 
-.workflow {
+.top-layout {
   margin-top: 1.4rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.85rem;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.95fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.converter-panel {
+  position: relative;
+  padding: 1.2rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(31, 107, 79, 0.16);
+  background:
+    linear-gradient(180deg, rgba(31, 107, 79, 0.09), rgba(31, 107, 79, 0.02)),
+    rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 60px -40px rgba(16, 38, 29, 0.55);
   animation: rise 520ms ease both;
+}
+
+.converter-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.converter-panel.is-dragging {
+  transform: translateY(-1px);
+  box-shadow: 0 28px 70px -38px rgba(16, 38, 29, 0.62);
+}
+
+.converter-panel-header {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.converter-kicker,
+.converter-title,
+.converter-sub {
+  margin: 0;
+}
+
+.converter-kicker {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+}
+
+.converter-title {
+  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  line-height: 1.1;
+}
+
+.converter-sub {
+  color: var(--muted);
+  line-height: 1.55;
+  max-width: 52ch;
+}
+
+.dropzone {
+  margin-top: 1rem;
+  border: 2px dashed rgba(31, 107, 79, 0.26);
+  border-radius: 1.1rem;
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(5px);
+  display: grid;
+  gap: 1rem;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.dropzone strong {
+  font-size: 1.2rem;
+}
+
+.dropzone p {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+}
+
+.dropzone.is-dragging {
+  border-color: var(--brand);
+  background: #f3fbf6;
+  transform: translateY(-1px);
+}
+
+.support-rail {
+  display: grid;
+  gap: 1rem;
+}
+
+.workflow {
+  display: grid;
+  gap: 0.75rem;
 }
 
 .workflow-step {
@@ -124,7 +217,7 @@ button {
   padding: 0.95rem 1rem;
   border: 1px solid rgba(202, 216, 207, 0.9);
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(6px);
 }
 
@@ -150,34 +243,6 @@ button {
   color: var(--muted);
   line-height: 1.5;
   font-size: 0.92rem;
-}
-
-.dropzone {
-  margin-top: 1.2rem;
-  border: 2px dashed var(--line);
-  border-radius: 1.1rem;
-  padding: 1.2rem;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(5px);
-  display: grid;
-  gap: 1rem;
-  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
-  animation: rise 560ms ease both;
-}
-
-.dropzone strong {
-  font-size: 1.2rem;
-}
-
-.dropzone p {
-  margin: 0.45rem 0 0;
-  color: var(--muted);
-}
-
-.dropzone.is-dragging {
-  border-color: var(--brand);
-  background: #f3fbf6;
-  transform: translateY(-1px);
 }
 
 .speed-mode {
@@ -480,7 +545,7 @@ button {
 }
 
 @media (max-width: 860px) {
-  .workflow,
+  .top-layout,
   .status-panel {
     grid-template-columns: 1fr;
   }
@@ -516,7 +581,8 @@ button {
   .queue-item,
   .empty-card,
   .status-panel,
-  .workflow-step {
+  .workflow-step,
+  .converter-panel {
     border-radius: 0.9rem;
   }
 
