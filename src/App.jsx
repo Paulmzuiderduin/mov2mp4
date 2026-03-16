@@ -682,58 +682,56 @@ export default function App() {
             </section>
           </div>
 
-          <aside className="support-rail">
-            <section className="status-panel" aria-live="polite">
-              <div>
-                <p className="status-kicker">Status</p>
-                <h2 className="status-title">{overviewStatus.title}</h2>
-                <p className="status-detail">{overviewStatus.detail}</p>
+          <section className="status-panel" aria-live="polite">
+            <div>
+              <p className="status-kicker">Status</p>
+              <h2 className="status-title">{overviewStatus.title}</h2>
+              <p className="status-detail">{overviewStatus.detail}</p>
+            </div>
+            <div className="status-metrics">
+              <div className="status-metric">
+                <span className="status-metric-label">Files waiting</span>
+                <strong>{queuedCount}</strong>
               </div>
-              <div className="status-metrics">
-                <div className="status-metric">
-                  <span className="status-metric-label">Files waiting</span>
-                  <strong>{queuedCount}</strong>
-                </div>
-                <div className="status-metric">
-                  <span className="status-metric-label">Completed</span>
-                  <strong>{doneCount}</strong>
-                </div>
-                <div className="status-metric">
-                  <span className="status-metric-label">Converter</span>
-                  <strong>
-                    {engineStatus === 'idle' && 'Not loaded yet'}
-                    {engineStatus === 'loading' && 'Starting'}
-                    {engineStatus === 'ready' && 'Ready'}
-                    {engineStatus === 'error' && 'Unavailable'}
-                  </strong>
-                </div>
+              <div className="status-metric">
+                <span className="status-metric-label">Completed</span>
+                <strong>{doneCount}</strong>
               </div>
-            </section>
+              <div className="status-metric">
+                <span className="status-metric-label">Converter</span>
+                <strong>
+                  {engineStatus === 'idle' && 'Not loaded yet'}
+                  {engineStatus === 'loading' && 'Starting'}
+                  {engineStatus === 'ready' && 'Ready'}
+                  {engineStatus === 'error' && 'Unavailable'}
+                </strong>
+              </div>
+            </div>
+          </section>
 
-            <section className="workflow" aria-label="How it works">
-              <article className="workflow-step">
-                <span className="workflow-number">1</span>
-                <div>
-                  <strong>Add your .MOV</strong>
-                  <p>Drag and drop or choose files from your device.</p>
-                </div>
-              </article>
-              <article className="workflow-step">
-                <span className="workflow-number">2</span>
-                <div>
-                  <strong>Convert locally</strong>
-                  <p>The conversion happens in this tab, so your video stays on your device.</p>
-                </div>
-              </article>
-              <article className="workflow-step">
-                <span className="workflow-number">3</span>
-                <div>
-                  <strong>Download the MP4</strong>
-                  <p>When it finishes, a download button appears next to each file.</p>
-                </div>
-              </article>
-            </section>
-          </aside>
+          <section className="workflow" aria-label="How it works">
+            <article className="workflow-step">
+              <span className="workflow-number">1</span>
+              <div>
+                <strong>Add your .MOV</strong>
+                <p>Drag and drop or choose files from your device.</p>
+              </div>
+            </article>
+            <article className="workflow-step">
+              <span className="workflow-number">2</span>
+              <div>
+                <strong>Convert locally</strong>
+                <p>The conversion happens in this tab, so your video stays on your device.</p>
+              </div>
+            </article>
+            <article className="workflow-step">
+              <span className="workflow-number">3</span>
+              <div>
+                <strong>Download the MP4</strong>
+                <p>When it finishes, a download button appears next to each file.</p>
+              </div>
+            </article>
+          </section>
         </section>
 
         {engineMessage ? <p className="hint">{engineMessage}</p> : null}
