@@ -174,7 +174,7 @@ button {
 .converter-sub {
   color: var(--muted);
   line-height: 1.55;
-  max-width: 52ch;
+  max-width: none;
 }
 
 .dropzone {
@@ -582,6 +582,12 @@ button {
 
   .queue-actions {
     justify-content: flex-start;
+  }
+}
+
+@media (min-width: 960px) {
+  .converter-sub {
+    white-space: nowrap;
   }
 }
 

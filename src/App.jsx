@@ -611,8 +611,7 @@ export default function App() {
               <p className="converter-kicker">Start Here</p>
               <h2 className="converter-title">Convert your .MOV to MP4</h2>
               <p className="converter-sub">
-                Drag in your file or pick it manually. The conversion runs in this browser tab,
-                then your MP4 is ready to download.
+                Add a .MOV file. Conversion runs in this tab, then your MP4 is ready to download.
               </p>
             </div>
 
