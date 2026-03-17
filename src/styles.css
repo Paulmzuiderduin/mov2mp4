@@ -292,6 +292,14 @@ button {
   background: #fff;
 }
 
+.choose-cta {
+  padding: 0.78rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-width: 1.5px;
+  box-shadow: 0 14px 28px -22px rgba(16, 38, 29, 0.65);
+}
+
 .button-ghost {
   color: var(--ink);
   border-color: transparent;
@@ -500,7 +508,7 @@ button {
 }
 
 .footer-note {
-  margin-top: 1rem;
+  margin-top: 0.8rem;
   border-left: 4px solid rgba(31, 107, 79, 0.4);
   padding: 0.3rem 0 0.3rem 0.85rem;
 }

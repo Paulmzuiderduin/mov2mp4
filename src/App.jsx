@@ -644,7 +644,11 @@ export default function App() {
               <p className="speed-note">{modeDescription}</p>
 
               <div className="actions">
-                <button type="button" onClick={triggerPicker} className="button button-secondary">
+                <button
+                  type="button"
+                  onClick={triggerPicker}
+                  className="button button-secondary choose-cta"
+                >
                   Choose files
                 </button>
                 <button
@@ -684,6 +688,11 @@ export default function App() {
               />
             </section>
           </div>
+
+          <section className="footer-note">
+            <p>Runs locally in your browser, so your source file stays on your device.</p>
+            <p>If a large file seems slow, keep the tab open and let the progress bar continue.</p>
+          </section>
 
           <section className="status-panel" aria-live="polite">
             <div>
@@ -764,11 +773,6 @@ export default function App() {
             ))
           )}
         </section>
-
-        <footer className="footer-note">
-          <p>Runs locally in your browser, so your source file stays on your device.</p>
-          <p>If a large file seems slow, keep the tab open and let the progress bar continue.</p>
-        </footer>
       </main>
     </div>
   );
