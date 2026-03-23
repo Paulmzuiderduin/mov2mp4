@@ -338,8 +338,8 @@ export default function App() {
 
   const largeFileNote =
     largestFile.file.size >= LARGE_FILE_THRESHOLD_BYTES
-      ? `Large file detected (${formatBytes(largestFile.file.size)}). Keep this tab open. Conversion can take several minutes in the browser.`
-      : 'Works best for short to medium clips. Very large videos can take longer because conversion happens in your browser.';
+      ? `Large file detected (${formatBytes(largestFile.file.size)}). Conversion may take longer in this tab.`
+      : 'Large videos can take longer because conversion happens in your browser.';
 
   const ensureEngine = async () => {
     if (ffmpegRef.current) return ffmpegRef.current;
@@ -669,10 +669,6 @@ export default function App() {
                 </button>
               </div>
 
-              <p className="action-hint">
-                You can add multiple files before converting. The converter runs in this tab.
-              </p>
-
               <div className="large-file-note" role="status" aria-live="polite">
                 <strong>Before you start:</strong>
                 <span>{largeFileNote}</span>
@@ -688,11 +684,6 @@ export default function App() {
               />
             </section>
           </div>
-
-          <section className="footer-note">
-            <p>Runs locally in your browser, so your source file stays on your device.</p>
-            <p>If a large file seems slow, keep the tab open and let the progress bar continue.</p>
-          </section>
 
           <section className="status-panel" aria-live="polite">
             <div>
