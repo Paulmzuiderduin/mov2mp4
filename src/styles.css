@@ -9,6 +9,7 @@
   --brand: #1f6b4f;
   --brand-dark: #153b2e;
   --accent: #e98f2f;
+  --accent-soft: #fff9f0;
   --muted: #466457;
   --error: #b42318;
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
@@ -17,6 +18,36 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0a110e;
+  --ink: #e6eee9;
+  --panel: #111d18;
+  --panel-soft: #172820;
+  --line: #2d4138;
+  --brand: #3ba67e;
+  --brand-dark: #287a5b;
+  --accent: #f2a95c;
+  --accent-soft: #2d2419;
+  --muted: #94ada2;
+  --error: #f04438;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0a110e;
+    --ink: #e6eee9;
+    --panel: #111d18;
+    --panel-soft: #172820;
+    --line: #2d4138;
+    --brand: #3ba67e;
+    --brand-dark: #287a5b;
+    --accent: #f2a95c;
+    --accent-soft: #2d2419;
+    --muted: #94ada2;
+    --error: #f04438;
+  }
 }
 
 * {
@@ -307,13 +338,19 @@ button {
   background: var(--panel-soft);
 }
 
+.button-accent {
+  color: #fff;
+  background: linear-gradient(140deg, var(--accent), #f2a95c);
+  box-shadow: 0 10px 26px -18px rgba(233, 143, 47, 0.9);
+}
+
 .large-file-note {
   display: grid;
   gap: 0.25rem;
   padding: 0.65rem 0.8rem;
   border: 1px solid rgba(233, 143, 47, 0.28);
   border-radius: 0.95rem;
-  background: linear-gradient(180deg, rgba(255, 249, 240, 0.92), rgba(255, 255, 255, 0.9));
+  background: linear-gradient(180deg, var(--accent-soft), var(--panel));
 }
 
 .large-file-note strong {
@@ -566,3 +603,39 @@ button {
     width: 100%;
   }
 }
+
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 100;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+  background: var(--panel-soft);
+}
+
+@media (max-width: 600px) {
+  .theme-toggle {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+}
+
