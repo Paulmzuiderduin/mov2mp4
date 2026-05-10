@@ -121,32 +121,38 @@ button {
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   color: var(--brand);
   font-weight: 700;
 }
 
 .hero h1 {
-  margin: 0.45rem 0 0;
-  font-size: clamp(1.65rem, 4.4vw, 2.9rem);
+  margin: 0.2rem 0 0;
+  font-size: clamp(1.5rem, 3.8vw, 2.4rem);
   letter-spacing: -0.04em;
-  line-height: 0.96;
+  line-height: 1.05;
 }
 
 .hero-sub {
-  margin: 0.45rem 0 0;
+  margin: 0.35rem 0 0;
   max-width: 62ch;
   color: var(--muted);
-  line-height: 1.45;
-  font-size: 0.9rem;
+  line-height: 1.4;
+  font-size: 0.86rem;
 }
 
 .top-layout {
   margin-top: 0.75rem;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.6rem;
-  align-items: start;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 0.8rem;
+  align-items: stretch;
+}
+
+@media (max-width: 860px) {
+  .top-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .converter-panel {
@@ -182,7 +188,7 @@ button {
 
 .converter-panel-header {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.2rem;
 }
 
 .converter-kicker,
@@ -192,7 +198,7 @@ button {
 }
 
 .converter-kicker {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -200,30 +206,31 @@ button {
 }
 
 .converter-title {
-  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
   line-height: 1.1;
 }
 
 .converter-sub {
   color: var(--muted);
-  line-height: 1.55;
+  line-height: 1.45;
+  font-size: 0.86rem;
   max-width: none;
 }
 
 .dropzone {
-  margin-top: 0.7rem;
+  margin-top: 0.5rem;
   border: 2px dashed var(--line);
   border-radius: 1.1rem;
-  padding: 0.85rem;
+  padding: 0.7rem;
   background: var(--panel-soft);
   backdrop-filter: blur(5px);
   display: grid;
-  gap: 0.6rem;
+  gap: 0.5rem;
   transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
 }
 
 .dropzone strong {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
 }
 
 .dropzone p {
@@ -366,14 +373,15 @@ button {
 }
 
 .status-panel {
-  margin-top: 0.45rem;
-  padding: 0.7rem 0.85rem;
-  border-radius: 1rem;
+  margin-top: 0;
+  padding: 0.95rem;
+  border-radius: 1.25rem;
   border: 1px solid var(--line);
   background: var(--panel);
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.2rem;
 }
 
 .status-kicker,
