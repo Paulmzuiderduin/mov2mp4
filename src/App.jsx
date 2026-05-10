@@ -146,8 +146,6 @@ export default function App() {
           />
         </section>
 
-        <SecuritySection />
-
         {engineMessage ? <p className="hint">{engineMessage}</p> : null}
         {notice ? <p className="hint">{notice}</p> : null}
 
@@ -169,6 +167,8 @@ export default function App() {
             ))
           )}
         </section>
+
+        <SecuritySection />
       </main>
     </div>
   );
