@@ -639,3 +639,79 @@ button {
   }
 }
 
+.security-section {
+  margin-top: 3rem;
+  padding: 2.5rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.security-header {
+  margin-bottom: 2rem;
+  max-width: 70ch;
+}
+
+.security-title {
+  font-size: 1.8rem;
+  margin: 0.5rem 0 1rem;
+  letter-spacing: -0.02em;
+}
+
+.security-intro {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 1.05rem;
+}
+
+.security-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.security-card {
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.security-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.05);
+}
+
+.security-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.security-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.security-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.security-footer {
+  margin-top: 2.5rem;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: var(--panel-soft);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  border: 1px solid var(--line);
+}
+
+.security-footer strong {
+  color: var(--brand);
+}
+
+

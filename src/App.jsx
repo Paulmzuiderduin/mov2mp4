@@ -8,6 +8,7 @@ import Hero from './components/Hero';
 import StatusPanel from './components/StatusPanel';
 import ConverterPanel from './components/ConverterPanel';
 import QueueItem from './components/QueueItem';
+import SecuritySection from './components/SecuritySection';
 
 export default function App() {
   const [speedMode, setSpeedMode] = useState('fastest');
@@ -144,6 +145,8 @@ export default function App() {
             engineStatus={engineStatus}
           />
         </section>
+
+        <SecuritySection />
 
         {engineMessage ? <p className="hint">{engineMessage}</p> : null}
         {notice ? <p className="hint">{notice}</p> : null}
