@@ -3,6 +3,7 @@ import JSZip from 'jszip';
 import { useFFmpegQueue } from './hooks/useFFmpegQueue';
 import { ACCEPT_PATTERN, LARGE_FILE_THRESHOLD_BYTES, getOverviewStatus } from './utils/ffmpeg';
 import { formatBytes } from './utils/video';
+import { trackEvent } from './utils/analytics';
 
 import Hero from './components/Hero';
 import StatusPanel from './components/StatusPanel';
@@ -86,6 +87,7 @@ export default function App() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       setNotice(`ZIP archive created with ${finishedItems.length} files.`);
+      trackEvent('zip_downloaded', { file_count: finishedItems.length });
     } catch (error) {
       setNotice('Failed to create ZIP archive.');
     }
@@ -125,7 +127,10 @@ export default function App() {
               addFiles(e.dataTransfer.files, ACCEPT_PATTERN);
             }}
             speedMode={speedMode}
-            setSpeedMode={setSpeedMode}
+            setSpeedMode={(mode) => {
+              if (mode !== speedMode) trackEvent('mode_changed', { mode });
+              setSpeedMode(mode);
+            }}
             isBusy={isBusy}
             queuedCount={queuedCount}
             hasItems={queue.length > 0}

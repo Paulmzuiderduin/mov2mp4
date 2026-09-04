@@ -1,4 +1,5 @@
 import { formatBytes } from '../utils/video';
+import { trackEvent } from '../utils/analytics';
 
 export default function QueueItem({ item, index, isBusy, onRemove }) {
   const statusLabel = (item) => {
@@ -31,7 +32,15 @@ export default function QueueItem({ item, index, isBusy, onRemove }) {
       </div>
       <div className="queue-actions">
         {item.downloadUrl ? (
-          <a className="button button-primary" href={item.downloadUrl} download={item.outputName}>
+          <a
+            className="button button-primary"
+            href={item.downloadUrl}
+            download={item.outputName}
+            onClick={() => trackEvent('mp4_downloaded', {
+              method: item.methodUsed || 'unknown',
+              input_mb: Math.round(item.file.size / (1024 * 1024))
+            })}
+          >
             Download MP4
           </a>
         ) : null}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { fetchFile } from '@ffmpeg/util';
 import { createFFmpeg, buildConversionPlans, tryCommands, normalizeErrorMessage, buildFriendlyErrorSummary } from '../utils/ffmpeg';
 import { makeId, safeDownloadName, formatBytes } from '../utils/video';
+import { trackEvent } from '../utils/analytics';
 
 export function useFFmpegQueue(speedMode) {
   const ffmpegRef = useRef(null);
@@ -69,32 +70,39 @@ export function useFFmpegQueue(speedMode) {
 
     const valid = picked.filter((file) => ACCEPT_PATTERN.test(file.name));
     const invalidCount = picked.length - valid.length;
+    const totalInputBytes = valid.reduce((total, file) => total + file.size, 0);
 
-    setQueue((prev) => {
-      const existing = new Set(prev.map((item) => `${item.file.name}:${item.file.size}`));
-      const additions = valid
-        .filter((file) => !existing.has(`${file.name}:${file.size}`))
-        .map((file) => ({
-          id: makeId(),
-          file,
-          status: 'queued',
-          progress: 0,
-          error: '',
-          errorDetails: '',
-          downloadUrl: '',
-          outputName: safeDownloadName(file.name),
-          methodUsed: ''
-        }));
+    const existing = new Set(queueRef.current.map((item) => `${item.file.name}:${item.file.size}`));
+    const additions = valid
+      .filter((file) => !existing.has(`${file.name}:${file.size}`))
+      .map((file) => ({
+        id: makeId(),
+        file,
+        status: 'queued',
+        progress: 0,
+        error: '',
+        errorDetails: '',
+        downloadUrl: '',
+        outputName: safeDownloadName(file.name),
+        methodUsed: ''
+      }));
 
-      const duplicateCount = valid.length - additions.length;
-      const messages = [];
-      if (additions.length > 0) messages.push(`${additions.length} file${additions.length === 1 ? '' : 's'} added.`);
-      if (invalidCount > 0) messages.push(`${invalidCount} skipped because only .MOV files are supported.`);
-      if (duplicateCount > 0) messages.push(`${duplicateCount} already in the list.`);
-      setNotice(messages.join(' '));
+    const duplicateCount = valid.length - additions.length;
+    const messages = [];
+    if (additions.length > 0) messages.push(`${additions.length} file${additions.length === 1 ? '' : 's'} added.`);
+    if (invalidCount > 0) messages.push(`${invalidCount} skipped because only .MOV files are supported.`);
+    if (duplicateCount > 0) messages.push(`${duplicateCount} already in the list.`);
+    setNotice(messages.join(' '));
 
-      return prev.concat(additions);
-    });
+    if (additions.length > 0) {
+      trackEvent('files_added', {
+        file_count: additions.length,
+        total_input_mb: Math.round(totalInputBytes / (1024 * 1024)),
+        invalid_count: invalidCount,
+        duplicate_count: duplicateCount
+      });
+      setQueue((prev) => prev.concat(additions));
+    }
   };
 
   const runConversionForItem = async (item, currentSpeedMode) => {
@@ -123,6 +131,15 @@ export function useFFmpegQueue(speedMode) {
       const blob = new Blob([data.buffer], { type: 'video/mp4' });
       const downloadUrl = URL.createObjectURL(blob);
 
+      const durationSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+      trackEvent('conversion_succeeded', {
+        mode: currentSpeedMode,
+        method: methodUsed,
+        input_mb: Math.round(item.file.size / (1024 * 1024)),
+        output_mb: Math.round(blob.size / (1024 * 1024)),
+        duration_seconds: durationSeconds
+      });
+
       setQueue((prev) =>
         prev.map((entry) =>
           entry.id === item.id
@@ -131,7 +148,6 @@ export function useFFmpegQueue(speedMode) {
         )
       );
 
-      const durationSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
       setNotice(`${item.file.name} finished in ~${durationSeconds}s.`);
     } finally {
       try { await ffmpeg.deleteFile(inputName); } catch (e) {}
@@ -145,6 +161,11 @@ export function useFFmpegQueue(speedMode) {
       .map((item) => item.id);
 
     if (!pendingIds.length || isBusy) return;
+
+    trackEvent('conversion_started', {
+      file_count: pendingIds.length,
+      mode: currentSpeedMode
+    });
 
     setIsBusy(true);
     setNotice('');
@@ -166,6 +187,10 @@ export function useFFmpegQueue(speedMode) {
           await runConversionForItem(item, currentSpeedMode);
         } catch (error) {
           const details = normalizeErrorMessage(error);
+          trackEvent('conversion_failed', {
+            mode: currentSpeedMode,
+            input_mb: Math.round(item.file.size / (1024 * 1024))
+          });
           setQueue((prev) =>
             prev.map((entry) =>
               entry.id === id ? { ...entry, status: 'error', error: buildFriendlyErrorSummary(details, currentSpeedMode), errorDetails: details, progress: 0 } : entry
