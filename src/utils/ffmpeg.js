@@ -52,6 +52,47 @@ export function buildFriendlyErrorSummary(message, speedMode) {
   return 'This file could not be converted in the browser. Try a shorter clip or another browser.';
 }
 
+// These values are deliberately coarse: useful in analytics without exposing a filename or FFmpeg log.
+export function classifyConversionFailure(message) {
+  const lower = String(message || '').toLowerCase();
+
+  if (
+    lower.includes('failed to import ffmpeg-core') ||
+    lower.includes('failed to load converter engine') ||
+    lower.includes('sharedarraybuffer') ||
+    lower.includes('worker')
+  ) {
+    return 'converter_engine_load_failed';
+  }
+
+  if (
+    lower.includes('memory') ||
+    lower.includes('out of bounds') ||
+    lower.includes('cannot enlarge memory') ||
+    lower.includes('abort')
+  ) {
+    return 'browser_memory_limit';
+  }
+
+  if (
+    lower.includes('invalid data found') ||
+    lower.includes('moov atom not found') ||
+    lower.includes('could not find codec parameters') ||
+    lower.includes('unknown decoder') ||
+    lower.includes('unsupported codec') ||
+    lower.includes('not currently supported') ||
+    lower.includes('decoder')
+  ) {
+    return 'unsupported_or_invalid_source_media';
+  }
+
+  if (lower.includes('produced no output') || lower.includes('no output produced')) {
+    return 'output_file_not_created';
+  }
+
+  return 'conversion_failed_unknown_reason';
+}
+
 export async function tryCommands(ffmpeg, commands, getLogTail) {
   let lastError = null;
   for (const command of commands) {

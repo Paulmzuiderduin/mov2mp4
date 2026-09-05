@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { fetchFile } from '@ffmpeg/util';
-import { createFFmpeg, buildConversionPlans, tryCommands, normalizeErrorMessage, buildFriendlyErrorSummary } from '../utils/ffmpeg';
+import {
+  createFFmpeg,
+  buildConversionPlans,
+  tryCommands,
+  normalizeErrorMessage,
+  buildFriendlyErrorSummary,
+  classifyConversionFailure
+} from '../utils/ffmpeg';
 import { makeId, safeDownloadName, formatBytes } from '../utils/video';
 import { trackEvent } from '../utils/analytics';
 
@@ -71,6 +78,13 @@ export function useFFmpegQueue(speedMode) {
     const valid = picked.filter((file) => ACCEPT_PATTERN.test(file.name));
     const invalidCount = picked.length - valid.length;
     const totalInputBytes = valid.reduce((total, file) => total + file.size, 0);
+
+    if (invalidCount > 0) {
+      trackEvent('file_rejected', {
+        reason: 'unsupported_file_extension',
+        rejected_count: invalidCount
+      });
+    }
 
     const existing = new Set(queueRef.current.map((item) => `${item.file.name}:${item.file.size}`));
     const additions = valid
@@ -189,7 +203,10 @@ export function useFFmpegQueue(speedMode) {
           const details = normalizeErrorMessage(error);
           trackEvent('conversion_failed', {
             mode: currentSpeedMode,
-            input_mb: Math.round(item.file.size / (1024 * 1024))
+            input_mb: Math.round(item.file.size / (1024 * 1024)),
+            source_extension: 'mov',
+            source_mime_type: item.file.type || 'unknown',
+            failure_category: classifyConversionFailure(details)
           });
           setQueue((prev) =>
             prev.map((entry) =>
